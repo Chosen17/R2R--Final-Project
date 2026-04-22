@@ -1,0 +1,2 @@
+module QrRedirectsHelper
+end

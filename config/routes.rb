@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  get "qr_redirects/show"
   get "transactions/new"
   get "transactions/create"
   resources :transactions, only: [ :new, :create, :show ]
