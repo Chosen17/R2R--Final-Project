@@ -47,9 +47,17 @@ class QrCodeService
   private
 
   # Returns the base URL for building the QR code link.
-  # In development this is localhost — in production it would be
-  # the live server URL stored in an environment variable.
+  # In development we use the ngrok public tunnel URL so that QR codes
+  # scanned by customer phones resolve to a publicly reachable address —
+  # 'localhost' would only work from the same computer running the server.
+  # The ngrok URL is stored in an environment variable so it can be
+  # updated without redeploying (ngrok free tunnels change on restart).
+  # In production this would be the live server URL.
   def base_url
-    Rails.env.development? ? "http://localhost:3000" : ENV["APP_BASE_URL"]
+    if Rails.env.development?
+      ENV.fetch("NGROK_URL", "http://localhost:3000")
+    else
+      ENV["APP_BASE_URL"]
+    end
   end
 end

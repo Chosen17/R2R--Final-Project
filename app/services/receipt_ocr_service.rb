@@ -36,28 +36,53 @@ class ReceiptOcrService
 
   private
 
-  # Preprocesses the receipt image to improve OCR accuracy.
-  # Thermal receipts in particular benefit from greyscale conversion
-  # and contrast enhancement, which makes faded text more readable.
-  def preprocess
-    output_path = "#{@image_path}_processed.png"
+# this is the new robust method which caters to more realistic phot conditions
+# Preprocesses the receipt image to improve OCR accuracy.
+# This pipeline is designed to handle real-world photo conditions
+# including uneven lighting, skewed angles, and low contrast typical
+# of thermal receipts photographed under restaurant lighting.
+def preprocess
+  output_path = "#{@image_path}_processed.png"
 
-    image = MiniMagick::Image.open(@image_path)
+  image = MiniMagick::Image.open(@image_path)
 
-    # Convert to greyscale — removes colour noise that confuses Tesseract
-    image.colorspace "Gray"
+  # Auto-rotate based on EXIF orientation metadata.
+  # Phone photos often have orientation stored as metadata rather than
+  # physically rotated pixels, and Tesseract doesn't read EXIF data.
+  image.auto_orient
 
-    # Enhance contrast — makes text stand out against the background
-    image.contrast
+  # Resize large images down — very high resolution photos (>2000px)
+  # actually hurt OCR accuracy because Tesseract was trained on
+  # images at roughly 300 DPI equivalent
+  image.resize "2000x2000>"
 
-    # Deskew — corrects slight rotation in photographed receipts
-    image.deskew "40%"
+  # Convert to greyscale — removes colour noise
+  image.colorspace "Gray"
 
-    # Save the processed image to a new temporary file
-    image.write output_path
+  # Normalise the image's tonal range — stretches the histogram so
+  # the darkest pixel becomes pure black and lightest becomes pure
+  # white. This handles the uneven lighting problem.
+  image.normalize
 
-    output_path
+  # Increase contrast twice for extra effect on faded thermal print
+  image.contrast
+  image.contrast
+
+  # Sharpen the edges — helps Tesseract distinguish characters
+  image.combine_options do |c|
+    c.sharpen "0x1.5"
   end
+
+  # Deskew — corrects slight rotation up to 40 degrees
+  image.deskew "40%"
+
+  # Save the processed image as output
+  image.write output_path
+
+  output_path
+end
+
+
 
   # Runs Tesseract OCR on the preprocessed image and returns the
   # extracted text as a plain string.
@@ -77,6 +102,20 @@ class ReceiptOcrService
   # Returns the total as a BigDecimal for precise currency arithmetic,
   # or nil if no match is found.
   def parse_total(text)
+    # This is a debug line which will help us see OCR text to see what tesseract is actually reading
+    Rails.logger.debug "=" * 20
+    Rails.logger.debug "Actual OCR text:"
+    Rails.logger.debug text
+    Rails.logger.debug "=" * 60
+
+    # Going to normalise the common OCR errors before pattern matching to improve accuracy.
+    # For example, OCR often misreads 'TOTAL' as 'T0TAL' or 'AMOUNT DUE' as 'AM0UNT DUE', so we can fix these common mistakes before searching for the total.
+    cleaned_text = text
+      .gsub(/[£€$]/i, "£")
+      .gsub(/[Oo](?=\d)/, "0")
+      .gsub(/[Il|](?=\d)/, "1")
+
+
     patterns = [
       # Pattern 1: "TOTAL" or "AMOUNT DUE" followed by digits with a decimal
       /(?:total|amount due|balance due|total due|amount payable)[^\d]*(\d+\.\d{2})/i,

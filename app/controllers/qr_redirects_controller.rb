@@ -39,15 +39,17 @@ class QrRedirectsController < ApplicationController
     @qr_token.update!(used: true)
 
     # Build the WhatsApp deep link URL.
-    # wa.me is WhatsApp's universal link format — when opened on a
-    # phone with WhatsApp installed, it opens the app directly.
-    # The 'text' parameter pre-populates the message the customer
-    # sends to the R2R bot, which triggers the webhook.
-    whatsapp_number = Rails.application.credentials.dig(:twilio, :whatsapp_number) || "14155238886"
+    # wa.me expects the phone number with NO plus sign, spaces, or dashes.
+    # We strip any stored formatting just in case.
+    twilio_config = Rails.application.credentials.twilio
+    raw_number = twilio_config.whatsapp_number.to_s
+    whatsapp_number = raw_number.gsub(/\D/, "")  # digits only
+
     message = "R2R-#{@qr_token.token}"
     whatsapp_url = "https://wa.me/#{whatsapp_number}?text=#{CGI.escape(message)}"
 
-    # Redirect the customer's browser/phone to WhatsApp
+    Rails.logger.info "Redirecting to WhatsApp URL: #{whatsapp_url}"
+
     redirect_to whatsapp_url, allow_other_host: true
   end
 end
