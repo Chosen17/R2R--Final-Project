@@ -6,6 +6,14 @@ Rails.application.configure do
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
+  # Allow all ngrok tunnels to reach the development server.
+  # Required because Twilio webhooks arrive via ngrok's public URL,
+  # not localhost. Ngrok tunnel URLs change every time ngrok restarts,
+  # so we whitelist the whole subdomain pattern rather than one host.
+  config.hosts << /.*\.ngrok-free\.dev/
+  config.hosts << /.*\.ngrok-free\.app/
+  config.hosts << /.*\.ngrok\.io/
+
   # Do not eager load code on boot.
   config.eager_load = false
 
