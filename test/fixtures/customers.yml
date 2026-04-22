@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  phone_number: MyString
+  name: MyString
+  cashback_balance: 9.99
+  conversation_state: MyString
+  last_message_at: 2026-04-21 19:15:29
+
+two:
+  phone_number: MyString
+  name: MyString
+  cashback_balance: 9.99
+  conversation_state: MyString
+  last_message_at: 2026-04-21 19:15:29

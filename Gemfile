@@ -61,3 +61,10 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+
+gem "rtesseract"
+gem "rqrcode"
+gem "twilio-ruby"
+gem "sidekiq"
+gem "mini_magick"
+gem "devise"
