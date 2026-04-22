@@ -20,6 +20,12 @@ class TransactionsController < ApplicationController
       return redirect_to new_transaction_path
     end
 
+  def show
+    # Here we are loading the transaction and the associated QR token to display to the staff member after they have uploaded the receipt. This is where they will see the QR code that the customer needs to scan.
+    @transaction = Transaction.find(params[:id])
+    @qr_token = @transaction.qr_token
+  end
+
     # Get the temporary file path of the uploaded image.
     # Rails stores uploaded files as tempfiles automatically.
     image_path = params[:receipt_image].tempfile.path
@@ -61,6 +67,9 @@ class TransactionsController < ApplicationController
       # Transaction saved successfully — now generate the QR code
       # that the customer will scan to claim their cashback
       @qr_token = QrCodeService.new(@transaction).call
+      # this line above was a silent problem this is because it was performing trubo streaming
+      # which is a problem because there was no frontend for the staff member to see that the reciept has been processed.
+      # So we are going to force a page redirected to the show page where the staff members can see that the reciept has been processed.
 
       # Render the show view which displays the QR code to staff
       render :show
