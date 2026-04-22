@@ -10,11 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_21_182020) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_22_122854) do
   create_table "customers", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "phone_number"
     t.string "name"
-    t.decimal "cashback_balance", precision: 10
+    t.decimal "cashback_balance", precision: 8, scale: 2
     t.string "conversation_state"
     t.datetime "last_message_at"
     t.datetime "created_at", null: false
@@ -29,15 +29,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_21_182020) do
     t.boolean "used"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "qr_png_base64"
     t.index ["qr_transaction_id"], name: "index_qr_tokens_on_qr_transaction_id"
     t.index ["token"], name: "index_qr_tokens_on_token", unique: true
   end
 
   create_table "transactions", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
-    t.bigint "customer_id", null: false
+    t.bigint "customer_id"
     t.string "receipt_hash"
-    t.decimal "bill_total", precision: 10
-    t.decimal "cashback_amount", precision: 10
+    t.decimal "bill_total", precision: 8, scale: 2
+    t.decimal "cashback_amount", precision: 8, scale: 2
     t.boolean "redeemed"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

@@ -1,0 +1,24 @@
+<%# Staff receipt upload page.
+    This is the form restaurant staff use to upload a photo of
+    the customer's receipt. The multipart: true option is required
+    for file uploads to work correctly in Rails. %>
+
+<h2>R2R — Process Receipt</h2>
+<p>Upload a photo of the customer's receipt to calculate their cashback.</p>
+
+<%# Display any error or success messages from the controller %>
+<% if flash[:alert] %>
+  <p style="color: red;"><%= flash[:alert] %></p>
+<% end %>
+
+<%# multipart: true tells Rails this form will contain a file upload,
+    not just text fields — without this, the image won't be sent %>
+<%= form_with url: transactions_path, multipart: true do |f| %>
+  <div>
+    <label>Receipt photo:</label><br>
+    <%# accept: "image/*" restricts the file picker to image files only %>
+    <%= f.file_field :receipt_image, accept: "image/*" %>
+  </div>
+  <br>
+  <%= f.submit "Process Receipt" %>
+<% end %>

@@ -1,0 +1,20 @@
+<%# Receipt processed — show the QR code to staff.
+    Staff present this QR code to the customer (on screen or printed).
+    The customer scans it with their phone camera which opens WhatsApp
+    and starts the cashback claim conversation with the R2R bot. %>
+
+<h2>Receipt Processed Successfully</h2>
+
+<p><strong>Bill total:</strong> £<%= @transaction.bill_total %></p>
+<p><strong>Cashback earned (10%):</strong> £<%= @transaction.cashback_amount %></p>
+<p><em>This QR code expires in 24 hours and can only be scanned once.</em></p>
+
+<h3>Show this QR code to the customer:</h3>
+
+<%# The QR code is stored as a Base64-encoded PNG in the database.
+    We embed it directly in the img tag — no separate image file needed. %>
+<%= image_tag @qr_token.qr_png_base64, style: "width: 250px; height: 250px;",
+    alt: "Customer cashback QR code" %>
+
+<br><br>
+<%= link_to "Process another receipt", new_transaction_path %>
