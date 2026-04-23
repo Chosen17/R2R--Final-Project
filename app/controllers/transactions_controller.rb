@@ -44,11 +44,12 @@ class TransactionsController < ApplicationController
       return redirect_to new_transaction_path
     end
 
-    # Calculate 10% cashback using BigDecimal arithmetic.
+    # Calculate cashback using BigDecimal arithmetic and configurable cashback rate from R2rConfig. We round to 2 decimal places to represent currency correctly.
     # We use BigDecimal instead of Float to avoid floating-point
     # rounding errors with currency values (e.g. 0.1 + 0.2 in Float
     # gives 0.30000000000000004, which is wrong for money)
-    cashback = (total * BigDecimal("0.10")).round(2)
+
+    cashback = (total * R2rConfig::CASHBACK_RATE).round(2)
 
     # Generate a SHA-256 hash of the total and timestamp.
     # This acts as a unique fingerprint for this receipt to prevent

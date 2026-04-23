@@ -147,8 +147,17 @@ class WebhooksController < ApplicationController
     # cashback hasn't been applied) to the customer's balance
     pending_transaction = Transaction.where(customer_id: customer.id, redeemed: false).last
     if pending_transaction
+      balance_before = customer.cashback_balance || BigDecimal("0.00")
       customer.increment!(:cashback_balance, pending_transaction.cashback_amount)
+      balance_after = customer.cashback_balance
       pending_transaction.update!(redeemed: true)
+
+      # this is where we enqueue a background job being the threshold check
+      # to see if the customer cashback balance has been crossed
+      # which if so then the notification gets sent out
+
+      RewardThresholdJob.perform_later(customer.id, balance_before, balance_after)
+
       return "Welcome, #{message_body}! £#{format('%.2f', pending_transaction.cashback_amount)} has been added to your account. Your balance is £#{format('%.2f', customer.cashback_balance)}. Visit us again to earn more!"
     end
 
@@ -169,8 +178,18 @@ class WebhooksController < ApplicationController
 
       transaction = Transaction.find(qr_token.qr_transaction_id)
       transaction.update!(customer_id: customer.id)
+
+      # Captures the balance before and after the threshold check
+      # so we can pass it to the RewardsThresholdJob to determine if a notification needs to be sent.
+      # We use increment! to ensure this is an atomic update in the database, preventing
+      balance_before = customer.cashback_balance || BigDecimal("0.00")
       customer.increment!(:cashback_balance, transaction.cashback_amount)
+      balance_after = customer.cashback_balance
       transaction.update!(redeemed: true)
+
+      # Enqueue the threshold check job to see if we need to notify the customer that their cashback is ready to redeem.
+      # We pass the before and after balances so the job can determine if the threshold was crossed on this update.
+      RewardThresholdJob.perform_later(customer.id, balance_before, balance_after)
 
       return "Welcome back, #{customer.name}! £#{format('%.2f', transaction.cashback_amount)} cashback added. Your new balance is £#{format('%.2f', customer.cashback_balance)}."
     end
