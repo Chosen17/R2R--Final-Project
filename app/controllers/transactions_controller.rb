@@ -51,10 +51,16 @@ class TransactionsController < ApplicationController
 
     cashback = (total * R2rConfig::CASHBACK_RATE).round(2)
 
-    # Generate a SHA-256 hash of the total and timestamp.
-    # This acts as a unique fingerprint for this receipt to prevent
-    # the same receipt being submitted twice (duplicate detection).
-    receipt_hash = Digest::SHA256.hexdigest("#{total}-#{Time.now.to_f}")
+    # Generate a SHA-256 hash of the raw image file bytes.
+    # This acts as a unique fingerprint of the receipt photo itself —
+    # uploading the exact same image twice produces an identical hash,
+    # which the UNIQUE constraint on receipt_hash rejects at the database
+    # level (FR9: duplicate receipt prevention). This is more robust than
+    # hashing the extracted total alone, because two genuinely different
+    # receipts might coincidentally share the same total and be wrongly
+    # rejected as duplicates.
+    image_bytes = File.read(params[:receipt_image].tempfile.path)
+    receipt_hash = Digest::SHA256.hexdigest(image_bytes)
 
     # Create the Transaction record in the database
     @transaction = Transaction.new(
@@ -68,18 +74,28 @@ class TransactionsController < ApplicationController
       # Transaction saved successfully — now generate the QR code
       # that the customer will scan to claim their cashback
       @qr_token = QrCodeService.new(@transaction).call
+      redirect_to transaction_path(@transaction)
       # this line above was a silent problem this is because it was performing trubo streaming
       # which is a problem because there was no frontend for the staff member to see that the reciept has been processed.
       # So we are going to force a page redirected to the show page where the staff members can see that the reciept has been processed.
 
       # Render the show view which displays the QR code to staff
-      render :show
+      # render :show
     else
-      # Here we aretrying to see the validation errors that are preventing the transaction from saving (this is for test case 1, sorting out an error)
-      Rails.logger.error("Transaction save failed: #{@transaction.errors.full_messages}")
-      flash[:alert] = "the transaction could not be saved so saved failed #{@transaction.errors.full_messages.join(", ")}"
-      # flash[:alert] = "Something went wrong saving the transaction."
-      redirect_to new_transaction_path
+      # Check specifically for the duplicate receipt case — the UNIQUE
+      # constraint on receipt_hash throws a "has already been taken" error
+      # when the same image has been processed before
+
+      if @transaction.errors[:receipt_hash].any?
+        flash[:alert] = "This receipt has already been processed. Each receipt can only be processed once."
+      else
+        # Here we aretrying to see the validation errors that are preventing the transaction from saving (this is for test case 1, sorting out an error)
+        Rails.logger.error("Transaction save failed: #{@transaction.errors.full_messages}")
+        flash[:alert] = "the transaction could not be saved so saved failed #{@transaction.errors.full_messages.join(", ")}"
+      end
+        redirect_to new_transaction_path
+
+
     end
   end
 end

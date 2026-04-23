@@ -14,7 +14,7 @@
 # pre-approved template message instead.
 
 
-Class MessagingWindowService
+class MessagingWindowService
   def initialize(customer)
   @customer = customer
   end
@@ -35,4 +35,5 @@ end
 # In production, we would use this check to decide whether to send a template message instead.
 def outside_window?
   !inside_window?
+end
 end
